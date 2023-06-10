@@ -33,6 +33,25 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     client.connect();
     // Send a ping to confirm a successful connection
+
+    /* ---------------------------------------------------------
+                          PUT
+    --------------------------------------------------------- */
+
+    //! put req while creating new user
+    app.put("/users", async (req, res) => {
+      const data = req.body;
+      const query = { email: data.email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...data,
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
