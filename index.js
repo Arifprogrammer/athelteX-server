@@ -61,6 +61,13 @@ async function run() {
       res.send(result);
     });
 
+    //! get req from instructors page
+    app.get("/instructors", async (req, res) => {
+      console.log(req.query);
+      const result = await usersCollection.find(req.query).toArray();
+      res.send(result);
+    });
+
     /* ---------------------------------------------------------
                           POST
     --------------------------------------------------------- */
