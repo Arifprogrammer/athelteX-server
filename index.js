@@ -56,6 +56,24 @@ async function run() {
     client.connect();
     // Send a ping to confirm a successful connection
 
+    //* custom middleswares
+    const verifyStudent = async (req, res, next) => {
+      const email = req.decoded.email;
+      if (email !== req.query.email) {
+        return res
+          .status(401)
+          .send({ error: true, message: "unauthorize user" });
+      }
+      const query = { email: email };
+      const student = await usersCollection.findOne(query);
+      if (student?.role !== "student") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
     /* ---------------------------------------------------------
                           GET
     --------------------------------------------------------- */
@@ -85,10 +103,15 @@ async function run() {
     });
 
     //! get req from selected-classes page
-    app.get("/dashboard/selected", verifyJWT, async (req, res) => {
-      const result = await selectedClassesCollection.find().toArray();
-      res.send(result);
-    });
+    app.get(
+      "/dashboard/selected",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const result = await selectedClassesCollection.find().toArray();
+        res.send(result);
+      }
+    );
 
     /* ---------------------------------------------------------
                           POST
@@ -127,6 +150,17 @@ async function run() {
         },
       };
       const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
+
+    /* ---------------------------------------------------------
+                          DELETE
+    --------------------------------------------------------- */
+    //! delete req from selected classes page
+    app.delete("/dashboard/selected/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await selectedClassesCollection.deleteOne(query);
       res.send(result);
     });
 
