@@ -16,6 +16,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+//* custom middlewares
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization) {
@@ -63,8 +64,20 @@ async function run() {
 
     //! get req from instructors page
     app.get("/instructors", async (req, res) => {
-      console.log(req.query);
       const result = await usersCollection.find(req.query).toArray();
+      res.send(result);
+    });
+
+    //! get req to check the user is student or not
+    app.get("/user/student/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({ student: false });
+      }
+      const query = { email: email };
+      const student = await usersCollection.findOne(query);
+      const result = { student: student?.role === "student" };
+      console.log(result);
       res.send(result);
     });
 
@@ -107,7 +120,7 @@ async function run() {
     // await client.close();
   }
 }
-run().catch(console.dir);
+run().catch(console.log);
 
 //* get request for testing the server
 app.get("/", (req, res) => {
