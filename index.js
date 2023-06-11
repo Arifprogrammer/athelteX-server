@@ -115,6 +115,17 @@ async function run() {
       }
     );
 
+    //! get req from enrolled-classes page
+    app.get(
+      "/dashboard/enrolled",
+      verifyJWT,
+      verifyStudent,
+      async (req, res) => {
+        const result = await paymentCollection.find().toArray();
+        res.send(result);
+      }
+    );
+
     /* ---------------------------------------------------------
                           POST
     --------------------------------------------------------- */
