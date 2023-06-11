@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 var jwt = require("jsonwebtoken");
 
@@ -49,6 +49,9 @@ async function run() {
   try {
     const usersCollection = client.db("athleteXDB").collection("users");
     const classesCollection = client.db("athleteXDB").collection("classes");
+    const selectedClassesCollection = client
+      .db("athleteXDB")
+      .collection("selectedClasses");
     // Connect the client to the server	(optional starting in v4.7)
     client.connect();
     // Send a ping to confirm a successful connection
@@ -77,7 +80,6 @@ async function run() {
       const query = { email: email };
       const student = await usersCollection.findOne(query);
       const result = { student: student?.role === "student" };
-      console.log(result);
       res.send(result);
     });
 
@@ -91,6 +93,16 @@ async function run() {
         expiresIn: "4h",
       });
       res.send({ token });
+    });
+
+    //! post req from select btn on classes page
+    app.post("/selected", async (req, res) => {
+      const selectedClasses = req.body;
+      selectedClasses.classId = new ObjectId(selectedClasses._id);
+      delete selectedClasses._id;
+      const result = await selectedClassesCollection.insertOne(selectedClasses);
+      res.send(result);
+      console.log(selectedClasses);
     });
 
     /* ---------------------------------------------------------
