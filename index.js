@@ -5,6 +5,7 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 var jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 
 const corsOptions = {
   origin: "*",
@@ -49,6 +50,7 @@ async function run() {
   try {
     const usersCollection = client.db("athleteXDB").collection("users");
     const classesCollection = client.db("athleteXDB").collection("classes");
+    const paymentCollection = client.db("athleteXDB").collection("payment");
     const selectedClassesCollection = client
       .db("athleteXDB")
       .collection("selectedClasses");
@@ -132,7 +134,40 @@ async function run() {
       delete selectedClasses._id;
       const result = await selectedClassesCollection.insertOne(selectedClasses);
       res.send(result);
-      console.log(selectedClasses);
+    });
+
+    //? ---------------------Stripe-----------------------
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    //! post req from payment page
+    app.post("/payment", verifyJWT, verifyStudent, async (req, res) => {
+      const paymentData = req.body;
+      const insertResult = await paymentCollection.insertOne(paymentData);
+      console.log(paymentData);
+      const updateQuery = { _id: new ObjectId(paymentData.classId) };
+      const updateDoc = {
+        $inc: { enrolled: 1, seats: -1 },
+      };
+      const updateResult = await classesCollection.updateOne(
+        updateQuery,
+        updateDoc
+      );
+      const deleteQuery = { _id: new ObjectId(paymentData.specificClassId) };
+      const deleteResult = await selectedClassesCollection.deleteOne(
+        deleteQuery
+      );
+      res.send({ insertResult, updateResult, deleteResult });
     });
 
     /* ---------------------------------------------------------
