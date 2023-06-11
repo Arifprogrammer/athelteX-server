@@ -61,7 +61,8 @@ async function run() {
     --------------------------------------------------------- */
     //! get req from classes page
     app.get("/classes", async (req, res) => {
-      const result = await classesCollection.find().toArray();
+      const query = req.query;
+      const result = await classesCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -80,6 +81,12 @@ async function run() {
       const query = { email: email };
       const student = await usersCollection.findOne(query);
       const result = { student: student?.role === "student" };
+      res.send(result);
+    });
+
+    //! get req from selected-classes page
+    app.get("/dashboard/selected", verifyJWT, async (req, res) => {
+      const result = await selectedClassesCollection.find().toArray();
       res.send(result);
     });
 
