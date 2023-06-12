@@ -76,6 +76,40 @@ async function run() {
       next();
     };
 
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      if (email !== req.query.email) {
+        return res
+          .status(401)
+          .send({ error: true, message: "unauthorize user" });
+      }
+      const query = { email: email };
+      const instructor = await usersCollection.findOne(query);
+      if (instructor?.role !== "Instructor") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      if (email !== req.query.email) {
+        return res
+          .status(401)
+          .send({ error: true, message: "unauthorize user" });
+      }
+      const query = { email: email };
+      const admin = await usersCollection.findOne(query);
+      if (admin?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
     /* ---------------------------------------------------------
                           GET
     --------------------------------------------------------- */
@@ -93,14 +127,18 @@ async function run() {
     });
 
     //! get req to check the user is student or not
-    app.get("/user/student/:email", verifyJWT, async (req, res) => {
+    app.get("/user/role/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       if (req.decoded.email !== email) {
-        res.send({ student: false });
+        res.send({ student: false, admin: false, instructor: false });
       }
       const query = { email: email };
-      const student = await usersCollection.findOne(query);
-      const result = { student: student?.role === "student" };
+      const role = await usersCollection.findOne(query);
+      const result = {
+        student: role?.role === "student",
+        admin: role?.role === "admin",
+        instructor: role?.role === "Instructor",
+      };
       res.send(result);
     });
 
@@ -122,6 +160,18 @@ async function run() {
       verifyStudent,
       async (req, res) => {
         const result = await paymentCollection.find().toArray();
+        res.send(result);
+      }
+    );
+
+    //! get req from myclasses page
+    app.get(
+      "/dashboard/my_classes",
+      verifyJWT,
+      verifyInstructor,
+      async (req, res) => {
+        const query = { email: req.query.email };
+        const result = await classesCollection.find(query).toArray();
         res.send(result);
       }
     );
@@ -165,7 +215,6 @@ async function run() {
     app.post("/payment", verifyJWT, verifyStudent, async (req, res) => {
       const paymentData = req.body;
       const insertResult = await paymentCollection.insertOne(paymentData);
-      console.log(paymentData);
       const updateQuery = { _id: new ObjectId(paymentData.classId) };
       const updateDoc = {
         $inc: { enrolled: 1, seats: -1 },
@@ -174,11 +223,17 @@ async function run() {
         updateQuery,
         updateDoc
       );
-      const deleteQuery = { _id: new ObjectId(paymentData.specificClassId) };
+      const deleteQuery = { _id: new ObjectId(paymentData.selectedClassId) };
       const deleteResult = await selectedClassesCollection.deleteOne(
         deleteQuery
       );
       res.send({ insertResult, updateResult, deleteResult });
+    });
+
+    //! post req form add a new class page
+    app.post("/new_class", verifyJWT, async (req, res) => {
+      const result = await classesCollection.insertOne(req.body);
+      res.send(result);
     });
 
     /* ---------------------------------------------------------
