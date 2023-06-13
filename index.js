@@ -115,8 +115,7 @@ async function run() {
     --------------------------------------------------------- */
     //! get req from classes page
     app.get("/classes", async (req, res) => {
-      const query = req.query;
-      const result = await classesCollection.find(query).toArray();
+      const result = await classesCollection.find().toArray();
       res.send(result);
     });
 
@@ -143,26 +142,28 @@ async function run() {
     });
 
     //! get req from selected-classes page
-    app.get(
-      "/dashboard/selected",
-      verifyJWT,
-      verifyStudent,
-      async (req, res) => {
-        const result = await selectedClassesCollection.find().toArray();
-        res.send(result);
+    app.get("/dashboard/selected", verifyJWT, async (req, res) => {
+      const email = req.decoded.email;
+      if (email !== req.query.email) {
+        return res
+          .status(401)
+          .send({ error: true, message: "unauthorize user" });
       }
-    );
+      const result = await selectedClassesCollection.find().toArray();
+      res.send(result);
+    });
 
     //! get req from enrolled-classes page
-    app.get(
-      "/dashboard/enrolled",
-      verifyJWT,
-      verifyStudent,
-      async (req, res) => {
-        const result = await paymentCollection.find().toArray();
-        res.send(result);
+    app.get("/dashboard/enrolled", verifyJWT, async (req, res) => {
+      const email = req.decoded.email;
+      if (email !== req.query.email) {
+        return res
+          .status(401)
+          .send({ error: true, message: "unauthorize user" });
       }
-    );
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
+    });
 
     //! get req from myclasses page
     app.get(
@@ -251,6 +252,39 @@ async function run() {
         },
       };
       const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
+
+    /* ---------------------------------------------------------
+                          PATCH
+    --------------------------------------------------------- */
+    //! patch req from approve btn on manage classes page
+    app.patch("/approve_class", verifyJWT, verifyAdmin, async (req, res) => {
+      const approveClass = req.body;
+      const filter = { _id: new ObjectId(approveClass.id) };
+      delete approveClass.id;
+      const updateDoc = {
+        $set: {
+          ...approveClass,
+        },
+      };
+      const result = await classesCollection.updateOne(filter, updateDoc);
+      console.log(result);
+      res.send(result);
+    });
+
+    //! patch req from deny btn on manage classes page
+    app.patch("/deny_class", verifyJWT, verifyAdmin, async (req, res) => {
+      const denyClass = req.body;
+      const filter = { _id: new ObjectId(denyClass.id) };
+      delete denyClass.id;
+      const updateDoc = {
+        $set: {
+          ...denyClass,
+        },
+      };
+      const result = await classesCollection.updateOne(filter, updateDoc);
+      console.log(result);
       res.send(result);
     });
 
