@@ -177,6 +177,12 @@ async function run() {
       }
     );
 
+    //! get req from manage users page
+    app.get("/dashboard/users", verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
     /* ---------------------------------------------------------
                           POST
     --------------------------------------------------------- */
@@ -269,7 +275,6 @@ async function run() {
         },
       };
       const result = await classesCollection.updateOne(filter, updateDoc);
-      console.log(result);
       res.send(result);
     });
 
@@ -284,6 +289,20 @@ async function run() {
         },
       };
       const result = await classesCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    //! patch req from make admin btn & make instructor btn on manage users page
+    app.patch("/role", verifyJWT, verifyAdmin, async (req, res) => {
+      const role = req.body;
+      const filter = { _id: new ObjectId(role.id) };
+      delete role.id;
+      const updateDoc = {
+        $set: {
+          ...role,
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
       console.log(result);
       res.send(result);
     });
