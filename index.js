@@ -303,7 +303,6 @@ async function run() {
         },
       };
       const result = await usersCollection.updateOne(filter, updateDoc);
-      console.log(result);
       res.send(result);
     });
 
