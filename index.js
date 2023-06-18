@@ -149,7 +149,8 @@ async function run() {
           .status(401)
           .send({ error: true, message: "unauthorize user" });
       }
-      const result = await selectedClassesCollection.find().toArray();
+      const filter = { userEmail: email };
+      const result = await selectedClassesCollection.find(filter).toArray();
       res.send(result);
     });
 
@@ -161,7 +162,8 @@ async function run() {
           .status(401)
           .send({ error: true, message: "unauthorize user" });
       }
-      const result = await paymentCollection.find().toArray();
+      const filter = { email: email };
+      const result = await paymentCollection.find(filter).toArray();
       res.send(result);
     });
 
